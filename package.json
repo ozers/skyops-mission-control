@@ -1,0 +1,22 @@
+{
+  "name": "skyops-mission-control",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SkyOps Mission Control - drone fleet mission control and maintenance tracker",
+  "packageManager": "pnpm@10.30.2",
+  "engines": {
+    "node": ">=20.11 <21",
+    "pnpm": ">=10"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md,yaml,yml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,json,md,yaml,yml}\""
+  },
+  "devDependencies": {
+    "prettier": "3.4.2"
+  }
+}
