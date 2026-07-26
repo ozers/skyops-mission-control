@@ -11,7 +11,12 @@
     "start:prod": "node dist/main.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "jest",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "typeorm": "typeorm-ts-node-commonjs -d src/database/data-source.ts",
+    "migration:generate": "pnpm typeorm migration:generate",
+    "migration:run": "pnpm typeorm migration:run",
+    "migration:revert": "pnpm typeorm migration:revert",
+    "migration:show": "pnpm typeorm migration:show"
   },
   "jest": {
     "preset": "ts-jest",
@@ -29,10 +34,15 @@
     "@nestjs/config": "4.0.4",
     "@nestjs/core": "11.1.28",
     "@nestjs/platform-express": "11.1.28",
+    "@nestjs/swagger": "11.4.6",
+    "@nestjs/typeorm": "11.0.3",
     "class-transformer": "0.5.1",
     "class-validator": "0.15.1",
+    "dotenv": "17.4.2",
+    "pg": "8.22.0",
     "reflect-metadata": "0.2.2",
-    "rxjs": "7.8.2"
+    "rxjs": "7.8.2",
+    "typeorm": "1.1.0"
   },
   "devDependencies": {
     "@nestjs/cli": "11.0.24",
@@ -45,6 +55,7 @@
     "source-map-support": "0.5.21",
     "supertest": "7.2.2",
     "ts-jest": "29.4.12",
+    "ts-node": "10.9.2",
     "typescript": "5.9.3"
   }
 }

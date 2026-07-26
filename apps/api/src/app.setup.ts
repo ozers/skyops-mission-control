@@ -1,9 +1,6 @@
 import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
 
-/**
- * Shared application configuration, applied identically by the real bootstrap
- * (`main.ts`) and by e2e tests, so the two can never drift apart.
- */
+/* Applied by both main.ts and the e2e tests so the two can't drift apart. */
 export function configureApp(app: INestApplication): void {
   app.setGlobalPrefix('api');
   app.enableVersioning({ type: VersioningType.URI, defaultVersion: '1' });
