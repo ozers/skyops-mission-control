@@ -91,4 +91,64 @@ describe('Missions (e2e)', () => {
       .send(missionBody('00000000-0000-0000-0000-000000000000', '2030-05-01T10:00:00Z', '2030-05-01T12:00:00Z'))
       .expect(404);
   });
+
+  const scheduleMission = async (droneId: string): Promise<string> => {
+    const res = await request(server())
+      .post('/api/v1/missions')
+      .send(missionBody(droneId, '2030-05-01T10:00:00Z', '2030-05-01T12:00:00Z'))
+      .expect(201);
+    return res.body.id;
+  };
+
+  it('drives a mission through its full lifecycle and updates the drone', async () => {
+    const droneId = await registerDrone();
+    const missionId = await scheduleMission(droneId);
+    const transition = (body: object) =>
+      request(server()).post(`/api/v1/missions/${missionId}/transitions`).send(body).expect(200);
+
+    await transition({ to: 'PRE_FLIGHT_CHECK' });
+    await transition({ to: 'IN_PROGRESS' });
+    await request(server())
+      .get(`/api/v1/drones/${droneId}`)
+      .expect(200)
+      .expect((res) => expect(res.body.status).toBe('IN_MISSION'));
+
+    const completed = await transition({ to: 'COMPLETED', flightHoursLogged: 2.5 });
+    expect(completed.body.status).toBe('COMPLETED');
+    expect(completed.body.loggedFlightHours).toBe(2.5);
+
+    await request(server())
+      .get(`/api/v1/drones/${droneId}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.status).toBe('AVAILABLE');
+        expect(res.body.totalFlightHours).toBe(2.5);
+      });
+  });
+
+  it('rejects an illegal transition with 409', async () => {
+    const droneId = await registerDrone();
+    const missionId = await scheduleMission(droneId);
+    await request(server())
+      .post(`/api/v1/missions/${missionId}/transitions`)
+      .send({ to: 'COMPLETED', flightHoursLogged: 1 })
+      .expect(409);
+  });
+
+  it('requires flight hours to complete (400)', async () => {
+    const droneId = await registerDrone();
+    const missionId = await scheduleMission(droneId);
+    await request(server())
+      .post(`/api/v1/missions/${missionId}/transitions`)
+      .send({ to: 'PRE_FLIGHT_CHECK' })
+      .expect(200);
+    await request(server())
+      .post(`/api/v1/missions/${missionId}/transitions`)
+      .send({ to: 'IN_PROGRESS' })
+      .expect(200);
+    await request(server())
+      .post(`/api/v1/missions/${missionId}/transitions`)
+      .send({ to: 'COMPLETED' })
+      .expect(400);
+  });
 });

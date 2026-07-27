@@ -8,9 +8,15 @@ import { ID_GENERATOR } from '../shared/application/id-generator';
 import { SystemClock } from '../shared/infrastructure/system-clock';
 import { UuidIdGenerator } from '../shared/infrastructure/uuid-id-generator';
 import { CreateMissionUseCase } from './application/create-mission.use-case';
+import { TransitionMissionUseCase } from './application/transition-mission.use-case';
 import { MISSION_REPOSITORY, MissionRepository } from './application/ports/mission.repository';
+import {
+  TRANSACTION_RUNNER,
+  TransactionRunner,
+} from './application/ports/transaction-runner';
 import { MissionEntity } from './infrastructure/mission.entity';
 import { TypeOrmMissionRepository } from './infrastructure/typeorm-mission.repository';
+import { TypeOrmTransactionRunner } from './infrastructure/typeorm-transaction-runner';
 import { MissionsController } from './interface/missions.controller';
 
 @Module({
@@ -34,6 +40,17 @@ import { MissionsController } from './interface/missions.controller';
         clock: SystemClock,
       ) => new CreateMissionUseCase(missions, drones, ids, clock),
       inject: [MISSION_REPOSITORY, DRONE_REPOSITORY, ID_GENERATOR, CLOCK],
+    },
+    {
+      provide: TRANSACTION_RUNNER,
+      useFactory: (dataSource: DataSource) => new TypeOrmTransactionRunner(dataSource),
+      inject: [getDataSourceToken()],
+    },
+    {
+      provide: TransitionMissionUseCase,
+      useFactory: (tx: TransactionRunner, clock: SystemClock) =>
+        new TransitionMissionUseCase(tx, clock),
+      inject: [TRANSACTION_RUNNER, CLOCK],
     },
   ],
 })

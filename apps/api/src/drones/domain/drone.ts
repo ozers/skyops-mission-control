@@ -1,7 +1,7 @@
 import { DroneModel, DroneStatus } from '@skyops/contracts';
 import { MaintenancePolicy } from '../../maintenance/domain/maintenance.policy';
 import { SerialNumber } from './serial-number';
-import { DroneAlreadyRetiredError } from './drone.errors';
+import { DroneAlreadyRetiredError, DroneUnavailableError } from './drone.errors';
 
 export interface DroneProps {
   id: string;
@@ -38,6 +38,23 @@ export class Drone {
       throw new DroneAlreadyRetiredError(this.props.id);
     }
     this.props.status = 'RETIRED';
+  }
+
+  assignToMission(): void {
+    if (this.props.status !== 'AVAILABLE') {
+      throw new DroneUnavailableError(this.props.id, this.props.status);
+    }
+    this.props.status = 'IN_MISSION';
+  }
+
+  /* Mission completed: bank the flight hours and free the drone. */
+  logCompletedMission(hours: number): void {
+    this.props.totalFlightHours += hours;
+    this.props.status = 'AVAILABLE';
+  }
+
+  returnFromMission(): void {
+    this.props.status = 'AVAILABLE';
   }
 
   /* Rebuild an aggregate from persisted state, bypassing registration rules. */

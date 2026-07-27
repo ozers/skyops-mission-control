@@ -11,6 +11,7 @@ describe('RegisterDroneUseCase', () => {
   const fakeRepo = (): jest.Mocked<DroneRepository> => ({
     save: jest.fn(),
     findById: jest.fn(),
+    findByIdForUpdate: jest.fn(),
     findBySerialNumber: jest.fn().mockResolvedValue(null),
     list: jest.fn(),
   });

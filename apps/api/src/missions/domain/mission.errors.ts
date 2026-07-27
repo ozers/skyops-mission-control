@@ -48,3 +48,30 @@ export class MissionDroneNotAvailableError extends DomainError {
     this.name = 'MissionDroneNotAvailableError';
   }
 }
+
+export class MissionNotFoundError extends DomainError {
+  readonly kind = 'not-found';
+
+  constructor(id: string) {
+    super(`Mission not found: ${id}`);
+    this.name = 'MissionNotFoundError';
+  }
+}
+
+export class MissionFlightHoursRequiredError extends DomainError {
+  readonly kind = 'validation';
+
+  constructor() {
+    super('Completing a mission requires positive logged flight hours');
+    this.name = 'MissionFlightHoursRequiredError';
+  }
+}
+
+export class MissionAbortReasonRequiredError extends DomainError {
+  readonly kind = 'validation';
+
+  constructor() {
+    super('Aborting a mission requires a reason');
+    this.name = 'MissionAbortReasonRequiredError';
+  }
+}

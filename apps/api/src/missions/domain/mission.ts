@@ -1,4 +1,9 @@
 import { MissionStatus, MissionType } from '@skyops/contracts';
+import { assertCanTransition } from './mission-state-machine';
+import {
+  MissionAbortReasonRequiredError,
+  MissionFlightHoursRequiredError,
+} from './mission.errors';
 import { TimeWindow } from './time-window';
 
 export interface MissionProps {
@@ -40,6 +45,37 @@ export class Mission {
 
   static fromPersistence(props: MissionProps): Mission {
     return new Mission(props);
+  }
+
+  beginPreFlight(): void {
+    assertCanTransition(this.props.status, 'PRE_FLIGHT_CHECK');
+    this.props.status = 'PRE_FLIGHT_CHECK';
+  }
+
+  start(at: Date): void {
+    assertCanTransition(this.props.status, 'IN_PROGRESS');
+    this.props.status = 'IN_PROGRESS';
+    this.props.actualStart = at;
+  }
+
+  complete(at: Date, loggedFlightHours: number | undefined): void {
+    assertCanTransition(this.props.status, 'COMPLETED');
+    if (loggedFlightHours === undefined || loggedFlightHours <= 0) {
+      throw new MissionFlightHoursRequiredError();
+    }
+    this.props.status = 'COMPLETED';
+    this.props.actualEnd = at;
+    this.props.loggedFlightHours = loggedFlightHours;
+  }
+
+  abort(at: Date, reason: string | undefined): void {
+    assertCanTransition(this.props.status, 'ABORTED');
+    if (!reason || reason.trim() === '') {
+      throw new MissionAbortReasonRequiredError();
+    }
+    this.props.status = 'ABORTED';
+    this.props.actualEnd = at;
+    this.props.abortReason = reason;
   }
 
   get id(): string {

@@ -32,6 +32,14 @@ export class TypeOrmDroneRepository implements DroneRepository {
     return entity ? DroneMapper.toDomain(entity) : null;
   }
 
+  async findByIdForUpdate(id: string): Promise<Drone | null> {
+    const entity = await this.repository.findOne({
+      where: { id },
+      lock: { mode: 'pessimistic_write' },
+    });
+    return entity ? DroneMapper.toDomain(entity) : null;
+  }
+
   async findBySerialNumber(serialNumber: SerialNumber): Promise<Drone | null> {
     const entity = await this.repository.findOne({
       where: { serialNumber: serialNumber.value },

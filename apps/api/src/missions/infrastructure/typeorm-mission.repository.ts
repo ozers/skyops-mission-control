@@ -28,6 +28,14 @@ export class TypeOrmMissionRepository implements MissionRepository {
     return entity ? MissionMapper.toDomain(entity) : null;
   }
 
+  async findByIdForUpdate(id: string): Promise<Mission | null> {
+    const entity = await this.repository.findOne({
+      where: { id },
+      lock: { mode: 'pessimistic_write' },
+    });
+    return entity ? MissionMapper.toDomain(entity) : null;
+  }
+
   private isExclusionViolation(error: unknown): boolean {
     return (
       error instanceof QueryFailedError &&

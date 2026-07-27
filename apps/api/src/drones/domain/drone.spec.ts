@@ -1,5 +1,5 @@
 import { Drone } from './drone';
-import { DroneAlreadyRetiredError } from './drone.errors';
+import { DroneAlreadyRetiredError, DroneUnavailableError } from './drone.errors';
 import { SerialNumber } from './serial-number';
 
 const register = (): Drone =>
@@ -28,5 +28,25 @@ describe('Drone', () => {
     const drone = register();
     drone.retire();
     expect(() => drone.retire()).toThrow(DroneAlreadyRetiredError);
+  });
+
+  it('assigns an available drone to a mission', () => {
+    const drone = register();
+    drone.assignToMission();
+    expect(drone.status).toBe('IN_MISSION');
+  });
+
+  it('rejects assigning a non-available drone', () => {
+    const drone = register();
+    drone.retire();
+    expect(() => drone.assignToMission()).toThrow(DroneUnavailableError);
+  });
+
+  it('banks flight hours and frees the drone when a mission completes', () => {
+    const drone = register();
+    drone.assignToMission();
+    drone.logCompletedMission(5);
+    expect(drone.status).toBe('AVAILABLE');
+    expect(drone.totalFlightHours).toBe(5);
   });
 });

@@ -36,6 +36,15 @@ export class DroneAlreadyRetiredError extends DomainError {
   }
 }
 
+export class DroneUnavailableError extends DomainError {
+  readonly kind = 'conflict';
+
+  constructor(id: string, status: string) {
+    super(`Drone ${id} is not available (status: ${status})`);
+    this.name = 'DroneUnavailableError';
+  }
+}
+
 export class DroneHasScheduledMissionsError extends DomainError {
   readonly kind = 'conflict';
 
