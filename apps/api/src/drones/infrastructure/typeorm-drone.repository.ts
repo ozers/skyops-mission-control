@@ -1,13 +1,14 @@
 import { FindOptionsWhere, QueryFailedError, Repository } from 'typeorm';
 import { Drone } from '../domain/drone';
-import { DuplicateSerialNumberError } from '../domain/drone.errors';
+import { DroneInUseError, DuplicateSerialNumberError } from '../domain/drone.errors';
 import { SerialNumber } from '../domain/serial-number';
 import { DroneRepository, ListDronesParams } from '../application/ports/drone.repository';
 import { DroneEntity } from './drone.entity';
 import { DroneMapper } from './drone.mapper';
 
-/* Postgres SQLSTATE for a unique-constraint violation. */
+/* Postgres SQLSTATE codes. */
 const UNIQUE_VIOLATION = '23505';
+const FOREIGN_KEY_VIOLATION = '23503';
 
 export class TypeOrmDroneRepository implements DroneRepository {
   constructor(private readonly repository: Repository<DroneEntity>) {}
@@ -59,5 +60,20 @@ export class TypeOrmDroneRepository implements DroneRepository {
       take: params.pageSize,
     });
     return { items: rows.map(DroneMapper.toDomain), total };
+  }
+
+  async delete(id: string): Promise<void> {
+    try {
+      await this.repository.delete(id);
+    } catch (error) {
+      /* A drone referenced by missions or maintenance logs can't be removed (FK RESTRICT). */
+      if (
+        error instanceof QueryFailedError &&
+        (error.driverError as { code?: string }).code === FOREIGN_KEY_VIOLATION
+      ) {
+        throw new DroneInUseError(id);
+      }
+      throw error;
+    }
   }
 }

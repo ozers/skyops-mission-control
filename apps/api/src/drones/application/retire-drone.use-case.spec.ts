@@ -20,6 +20,7 @@ describe('RetireDroneUseCase', () => {
     findByIdForUpdate: jest.fn(),
     findBySerialNumber: jest.fn(),
     list: jest.fn(),
+    delete: jest.fn(),
   });
 
   const scheduled = (ids: string[]): jest.Mocked<ScheduledMissionsPort> => ({

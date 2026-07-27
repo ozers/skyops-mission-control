@@ -36,6 +36,15 @@ export class DroneAlreadyRetiredError extends DomainError {
   }
 }
 
+export class DroneInUseError extends DomainError {
+  readonly kind = 'conflict';
+
+  constructor(id: string) {
+    super(`Drone ${id} cannot be deleted: it has missions or maintenance logs`);
+    this.name = 'DroneInUseError';
+  }
+}
+
 export class DroneUnavailableError extends DomainError {
   readonly kind = 'conflict';
 

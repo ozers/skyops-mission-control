@@ -18,6 +18,7 @@ export interface DroneRepository {
   findByIdForUpdate(id: string): Promise<Drone | null>;
   findBySerialNumber(serialNumber: SerialNumber): Promise<Drone | null>;
   list(params: ListDronesParams): Promise<{ items: Drone[]; total: number }>;
+  delete(id: string): Promise<void>;
 }
 
 export const DRONE_REPOSITORY = Symbol('DroneRepository');

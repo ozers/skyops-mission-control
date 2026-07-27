@@ -32,6 +32,7 @@ describe('CreateMissionUseCase', () => {
     findByIdForUpdate: jest.fn(),
     findBySerialNumber: jest.fn(),
     list: jest.fn(),
+    delete: jest.fn(),
   });
 
   const input = {

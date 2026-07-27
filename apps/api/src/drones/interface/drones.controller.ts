@@ -1,11 +1,13 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
   Param,
   ParseUUIDPipe,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -17,13 +19,16 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { DroneResponse, PaginatedResult } from '@skyops/contracts';
+import { DeleteDroneUseCase } from '../application/delete-drone.use-case';
 import { GetDroneUseCase } from '../application/get-drone.use-case';
 import { ListDronesUseCase } from '../application/list-drones.use-case';
 import { RegisterDroneUseCase } from '../application/register-drone.use-case';
 import { RetireDroneUseCase } from '../application/retire-drone.use-case';
+import { UpdateDroneUseCase } from '../application/update-drone.use-case';
 import { toDroneResponse } from './drone.presenter';
 import { ListDronesQueryDto } from './dto/list-drones.query.dto';
 import { RegisterDroneDto } from './dto/register-drone.dto';
+import { UpdateDroneDto } from './dto/update-drone.dto';
 
 @ApiTags('Drones')
 @Controller('drones')
@@ -32,6 +37,8 @@ export class DronesController {
     private readonly registerDrone: RegisterDroneUseCase,
     private readonly getDrone: GetDroneUseCase,
     private readonly listDrones: ListDronesUseCase,
+    private readonly updateDrone: UpdateDroneUseCase,
+    private readonly deleteDrone: DeleteDroneUseCase,
     private readonly retireDrone: RetireDroneUseCase,
   ) {}
 
@@ -56,6 +63,27 @@ export class DronesController {
   async findAll(@Query() query: ListDronesQueryDto): Promise<PaginatedResult<DroneResponse>> {
     const page = await this.listDrones.execute(query);
     return { ...page, items: page.items.map(toDroneResponse) };
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update a drone', description: 'Corrects registry details (model).' })
+  @ApiOkResponse({ description: 'The updated drone' })
+  @ApiNotFoundResponse({ description: 'No drone with that id' })
+  async update(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateDroneDto,
+  ): Promise<DroneResponse> {
+    return toDroneResponse(await this.updateDrone.execute(id, dto));
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Delete a drone',
+    description: 'Fails with 409 if the drone has missions or maintenance logs.',
+  })
+  async remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    await this.deleteDrone.execute(id);
   }
 
   @Post(':id/retire')

@@ -14,6 +14,7 @@ describe('RegisterDroneUseCase', () => {
     findByIdForUpdate: jest.fn(),
     findBySerialNumber: jest.fn().mockResolvedValue(null),
     list: jest.fn(),
+    delete: jest.fn(),
   });
 
   it('registers a new drone as AVAILABLE with zero flight hours', async () => {

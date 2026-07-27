@@ -66,6 +66,31 @@ describe('Drones (e2e)', () => {
       .expect(404);
   });
 
+  it('updates a drone model', async () => {
+    const created = await request(server()).post('/api/v1/drones').send(validBody).expect(201);
+    await request(server())
+      .patch(`/api/v1/drones/${created.body.id}`)
+      .send({ model: 'MATRICE_300' })
+      .expect(200)
+      .expect((res) => expect(res.body.model).toBe('MATRICE_300'));
+  });
+
+  it('deletes a drone with no references', async () => {
+    const created = await request(server()).post('/api/v1/drones').send(validBody).expect(201);
+    await request(server()).delete(`/api/v1/drones/${created.body.id}`).expect(204);
+    await request(server()).get(`/api/v1/drones/${created.body.id}`).expect(404);
+  });
+
+  it('refuses to delete a drone that has a mission (409)', async () => {
+    const created = await request(server()).post('/api/v1/drones').send(validBody).expect(201);
+    await dataSource.query(
+      `INSERT INTO missions (name, type, drone_id, pilot_name, site_location, status, scheduled_start, scheduled_end)
+       VALUES ('m', 'WIND_TURBINE_INSPECTION', $1, 'p', 's', 'PLANNED', '2030-05-01T10:00:00Z', '2030-05-01T12:00:00Z')`,
+      [created.body.id],
+    );
+    await request(server()).delete(`/api/v1/drones/${created.body.id}`).expect(409);
+  });
+
   it('retires a drone with no active missions', async () => {
     const created = await request(server()).post('/api/v1/drones').send(validBody).expect(201);
     await request(server())

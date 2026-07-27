@@ -53,6 +53,10 @@ export class Drone {
     this.props.status = 'RETIRED';
   }
 
+  changeModel(model: DroneModel): void {
+    this.props.model = model;
+  }
+
   assignToMission(): void {
     if (this.props.status !== 'AVAILABLE') {
       throw new DroneUnavailableError(this.props.id, this.props.status);

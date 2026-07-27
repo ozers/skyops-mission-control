@@ -6,10 +6,12 @@ import { ID_GENERATOR } from '../shared/application/id-generator';
 import { SystemClock } from '../shared/infrastructure/system-clock';
 import { UuidIdGenerator } from '../shared/infrastructure/uuid-id-generator';
 import { MissionEntity } from '../missions/infrastructure/mission.entity';
+import { DeleteDroneUseCase } from './application/delete-drone.use-case';
 import { GetDroneUseCase } from './application/get-drone.use-case';
 import { ListDronesUseCase } from './application/list-drones.use-case';
 import { RegisterDroneUseCase } from './application/register-drone.use-case';
 import { RetireDroneUseCase } from './application/retire-drone.use-case';
+import { UpdateDroneUseCase } from './application/update-drone.use-case';
 import { DRONE_REPOSITORY, DroneRepository } from './application/ports/drone.repository';
 import {
   SCHEDULED_MISSIONS,
@@ -52,6 +54,16 @@ import { DronesController } from './interface/drones.controller';
     {
       provide: ListDronesUseCase,
       useFactory: (drones: DroneRepository) => new ListDronesUseCase(drones),
+      inject: [DRONE_REPOSITORY],
+    },
+    {
+      provide: UpdateDroneUseCase,
+      useFactory: (drones: DroneRepository) => new UpdateDroneUseCase(drones),
+      inject: [DRONE_REPOSITORY],
+    },
+    {
+      provide: DeleteDroneUseCase,
+      useFactory: (drones: DroneRepository) => new DeleteDroneUseCase(drones),
       inject: [DRONE_REPOSITORY],
     },
     {
