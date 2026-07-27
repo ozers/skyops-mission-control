@@ -9,6 +9,8 @@ import {
 } from 'typeorm';
 
 @Entity('missions')
+/* Serves "missions for drone X" and per-drone date-range filters. */
+@Index('idx_missions_drone_scheduled', ['droneId', 'scheduledStart'])
 export class MissionEntity {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -19,7 +21,6 @@ export class MissionEntity {
   @Column()
   type!: MissionType;
 
-  @Index()
   @Column('uuid')
   droneId!: string;
 
@@ -33,6 +34,7 @@ export class MissionEntity {
   @Column()
   status!: MissionStatus;
 
+  @Index()
   @Column('timestamptz')
   scheduledStart!: Date;
 
