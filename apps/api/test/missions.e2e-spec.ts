@@ -92,6 +92,27 @@ describe('Missions (e2e)', () => {
       .expect(404);
   });
 
+  it('lists missions filtered by status', async () => {
+    const droneId = await registerDrone();
+    await request(server())
+      .post('/api/v1/missions')
+      .send(missionBody(droneId, '2030-05-01T10:00:00Z', '2030-05-01T12:00:00Z'))
+      .expect(201);
+
+    const planned = await request(server())
+      .get('/api/v1/missions')
+      .query({ status: 'PLANNED' })
+      .expect(200);
+    expect(planned.body.total).toBe(1);
+    expect(planned.body.items[0].droneId).toBe(droneId);
+
+    const completed = await request(server())
+      .get('/api/v1/missions')
+      .query({ status: 'COMPLETED' })
+      .expect(200);
+    expect(completed.body.total).toBe(0);
+  });
+
   const scheduleMission = async (droneId: string): Promise<string> => {
     const res = await request(server())
       .post('/api/v1/missions')

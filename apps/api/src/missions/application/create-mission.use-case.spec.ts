@@ -23,6 +23,7 @@ describe('CreateMissionUseCase', () => {
     save: jest.fn(),
     findById: jest.fn(),
     findByIdForUpdate: jest.fn(),
+    list: jest.fn(),
   });
 
   const droneRepo = (found: Drone | null): jest.Mocked<DroneRepository> => ({

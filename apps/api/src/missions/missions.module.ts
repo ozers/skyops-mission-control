@@ -8,6 +8,7 @@ import { ID_GENERATOR } from '../shared/application/id-generator';
 import { SystemClock } from '../shared/infrastructure/system-clock';
 import { UuidIdGenerator } from '../shared/infrastructure/uuid-id-generator';
 import { CreateMissionUseCase } from './application/create-mission.use-case';
+import { ListMissionsUseCase } from './application/list-missions.use-case';
 import { TransitionMissionUseCase } from './application/transition-mission.use-case';
 import { MISSION_REPOSITORY, MissionRepository } from './application/ports/mission.repository';
 import {
@@ -40,6 +41,11 @@ import { MissionsController } from './interface/missions.controller';
         clock: SystemClock,
       ) => new CreateMissionUseCase(missions, drones, ids, clock),
       inject: [MISSION_REPOSITORY, DRONE_REPOSITORY, ID_GENERATOR, CLOCK],
+    },
+    {
+      provide: ListMissionsUseCase,
+      useFactory: (missions: MissionRepository) => new ListMissionsUseCase(missions),
+      inject: [MISSION_REPOSITORY],
     },
     {
       provide: TRANSACTION_RUNNER,
