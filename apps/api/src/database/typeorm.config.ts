@@ -1,5 +1,6 @@
 import { join } from 'node:path';
 import { DataSourceOptions } from 'typeorm';
+import { SnakeNamingStrategy } from './snake-naming.strategy';
 
 /*
  * One options factory for both the app and the migration CLI, so they can't
@@ -17,6 +18,7 @@ export function buildDataSourceOptions(
     database: env.DB_NAME ?? 'skyops',
     entities: [join(__dirname, '..', '**', '*.entity.{ts,js}')],
     migrations: [join(__dirname, 'migrations', '*.{ts,js}')],
+    namingStrategy: new SnakeNamingStrategy(),
     synchronize: false,
     logging: env.DB_LOGGING === 'true',
   };
