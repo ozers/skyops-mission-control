@@ -9,6 +9,8 @@ export interface DroneProps {
   model: DroneModel;
   status: DroneStatus;
   totalFlightHours: number;
+  /* Total flight hours as of the last maintenance; baseline for the 50-hour trigger. */
+  flightHoursAtLastMaintenance: number;
   lastMaintenanceAt: Date | null;
   nextMaintenanceDueAt: Date | null;
   registeredAt: Date;
@@ -27,9 +29,20 @@ export class Drone {
       ...input,
       status: 'AVAILABLE',
       totalFlightHours: 0,
+      flightHoursAtLastMaintenance: 0,
       lastMaintenanceAt: null,
       /* A fresh drone is due for maintenance 90 days from registration (ADR-2 / the brief). */
       nextMaintenanceDueAt: MaintenancePolicy.nextDueDate(input.registeredAt),
+    });
+  }
+
+  /* Due for maintenance at 50 flight hours since the last service, or 90 days. */
+  isMaintenanceDue(now: Date): boolean {
+    return MaintenancePolicy.isDue({
+      lastMaintenanceAt: this.props.lastMaintenanceAt ?? this.props.registeredAt,
+      flightHoursSinceMaintenance:
+        this.props.totalFlightHours - this.props.flightHoursAtLastMaintenance,
+      now,
     });
   }
 
@@ -57,6 +70,21 @@ export class Drone {
     this.props.status = 'AVAILABLE';
   }
 
+  startMaintenance(): void {
+    if (this.props.status !== 'AVAILABLE') {
+      throw new DroneUnavailableError(this.props.id, this.props.status);
+    }
+    this.props.status = 'MAINTENANCE';
+  }
+
+  /* Maintenance logged: reset the tracking baselines and return the drone to service. */
+  completeMaintenance(performedAt: Date): void {
+    this.props.lastMaintenanceAt = performedAt;
+    this.props.flightHoursAtLastMaintenance = this.props.totalFlightHours;
+    this.props.nextMaintenanceDueAt = MaintenancePolicy.nextDueDate(performedAt);
+    this.props.status = 'AVAILABLE';
+  }
+
   /* Rebuild an aggregate from persisted state, bypassing registration rules. */
   static fromPersistence(props: DroneProps): Drone {
     return new Drone(props);
@@ -76,6 +104,9 @@ export class Drone {
   }
   get totalFlightHours(): number {
     return this.props.totalFlightHours;
+  }
+  get flightHoursAtLastMaintenance(): number {
+    return this.props.flightHoursAtLastMaintenance;
   }
   get lastMaintenanceAt(): Date | null {
     return this.props.lastMaintenanceAt;

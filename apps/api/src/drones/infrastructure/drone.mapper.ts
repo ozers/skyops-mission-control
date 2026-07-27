@@ -11,6 +11,7 @@ export const DroneMapper = {
     entity.model = drone.model;
     entity.status = drone.status;
     entity.totalFlightHours = drone.totalFlightHours;
+    entity.flightHoursAtLastMaintenance = drone.flightHoursAtLastMaintenance;
     entity.lastMaintenanceAt = drone.lastMaintenanceAt;
     entity.nextMaintenanceDueAt = drone.nextMaintenanceDueAt;
     entity.registeredAt = drone.registeredAt;
@@ -24,6 +25,7 @@ export const DroneMapper = {
       model: entity.model,
       status: entity.status,
       totalFlightHours: entity.totalFlightHours,
+      flightHoursAtLastMaintenance: entity.flightHoursAtLastMaintenance,
       lastMaintenanceAt: entity.lastMaintenanceAt,
       nextMaintenanceDueAt: entity.nextMaintenanceDueAt,
       registeredAt: entity.registeredAt,

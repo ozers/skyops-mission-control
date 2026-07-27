@@ -27,6 +27,9 @@ export class DroneEntity {
   @Column('double precision', { default: 0 })
   totalFlightHours!: number;
 
+  @Column('double precision', { default: 0 })
+  flightHoursAtLastMaintenance!: number;
+
   @Column('timestamptz', { nullable: true })
   lastMaintenanceAt!: Date | null;
 
