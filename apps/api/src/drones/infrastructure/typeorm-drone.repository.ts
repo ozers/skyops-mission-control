@@ -1,7 +1,7 @@
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, Repository } from 'typeorm';
 import { Drone } from '../domain/drone';
 import { SerialNumber } from '../domain/serial-number';
-import { DroneRepository } from '../application/ports/drone.repository';
+import { DroneRepository, ListDronesParams } from '../application/ports/drone.repository';
 import { DroneEntity } from './drone.entity';
 import { DroneMapper } from './drone.mapper';
 
@@ -22,5 +22,19 @@ export class TypeOrmDroneRepository implements DroneRepository {
       where: { serialNumber: serialNumber.value },
     });
     return entity ? DroneMapper.toDomain(entity) : null;
+  }
+
+  async list(params: ListDronesParams): Promise<{ items: Drone[]; total: number }> {
+    const where: FindOptionsWhere<DroneEntity> = {};
+    if (params.status) {
+      where.status = params.status;
+    }
+    const [rows, total] = await this.repository.findAndCount({
+      where,
+      order: { registeredAt: 'DESC' },
+      skip: (params.page - 1) * params.pageSize,
+      take: params.pageSize,
+    });
+    return { items: rows.map(DroneMapper.toDomain), total };
   }
 }

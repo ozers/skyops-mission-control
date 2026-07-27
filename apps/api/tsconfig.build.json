@@ -4,5 +4,12 @@
     "rootDir": "./src",
     "incremental": false
   },
-  "exclude": ["node_modules", "dist", "test", "**/*.spec.ts", "**/*.e2e-spec.ts"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "test",
+    "**/*.spec.ts",
+    "**/*.integration-spec.ts",
+    "**/*.e2e-spec.ts"
+  ]
 }
