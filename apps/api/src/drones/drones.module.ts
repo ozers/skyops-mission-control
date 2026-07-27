@@ -61,5 +61,6 @@ import { DronesController } from './interface/drones.controller';
       inject: [DRONE_REPOSITORY, SCHEDULED_MISSIONS],
     },
   ],
+  exports: [DRONE_REPOSITORY],
 })
 export class DronesModule {}

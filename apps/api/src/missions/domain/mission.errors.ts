@@ -39,3 +39,12 @@ export class MissionOverlapError extends DomainError {
     this.name = 'MissionOverlapError';
   }
 }
+
+export class MissionDroneNotAvailableError extends DomainError {
+  readonly kind = 'conflict';
+
+  constructor(droneId: string, status: string) {
+    super(`Drone ${droneId} is not available for a mission (status: ${status})`);
+    this.name = 'MissionDroneNotAvailableError';
+  }
+}

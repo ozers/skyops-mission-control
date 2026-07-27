@@ -3,8 +3,15 @@ import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from './database/database.module';
 import { DronesModule } from './drones/drones.module';
 import { HealthModule } from './health/health.module';
+import { MissionsModule } from './missions/missions.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true }), DatabaseModule, HealthModule, DronesModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    DatabaseModule,
+    HealthModule,
+    DronesModule,
+    MissionsModule,
+  ],
 })
 export class AppModule {}

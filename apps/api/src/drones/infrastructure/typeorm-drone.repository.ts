@@ -1,15 +1,30 @@
-import { FindOptionsWhere, Repository } from 'typeorm';
+import { FindOptionsWhere, QueryFailedError, Repository } from 'typeorm';
 import { Drone } from '../domain/drone';
+import { DuplicateSerialNumberError } from '../domain/drone.errors';
 import { SerialNumber } from '../domain/serial-number';
 import { DroneRepository, ListDronesParams } from '../application/ports/drone.repository';
 import { DroneEntity } from './drone.entity';
 import { DroneMapper } from './drone.mapper';
 
+/* Postgres SQLSTATE for a unique-constraint violation. */
+const UNIQUE_VIOLATION = '23505';
+
 export class TypeOrmDroneRepository implements DroneRepository {
   constructor(private readonly repository: Repository<DroneEntity>) {}
 
   async save(drone: Drone): Promise<void> {
-    await this.repository.save(DroneMapper.toEntity(drone));
+    try {
+      await this.repository.save(DroneMapper.toEntity(drone));
+    } catch (error) {
+      /* Backstop for a concurrent duplicate the app-level check can't catch. */
+      if (
+        error instanceof QueryFailedError &&
+        (error.driverError as { code?: string }).code === UNIQUE_VIOLATION
+      ) {
+        throw new DuplicateSerialNumberError(drone.serialNumber.value);
+      }
+      throw error;
+    }
   }
 
   async findById(id: string): Promise<Drone | null> {
