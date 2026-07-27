@@ -1,5 +1,7 @@
 import { DroneModel, DroneStatus } from '@skyops/contracts';
+import { MaintenancePolicy } from '../../maintenance/domain/maintenance.policy';
 import { SerialNumber } from './serial-number';
+import { DroneAlreadyRetiredError } from './drone.errors';
 
 export interface DroneProps {
   id: string;
@@ -26,8 +28,16 @@ export class Drone {
       status: 'AVAILABLE',
       totalFlightHours: 0,
       lastMaintenanceAt: null,
-      nextMaintenanceDueAt: null,
+      /* A fresh drone is due for maintenance 90 days from registration (ADR-2 / the brief). */
+      nextMaintenanceDueAt: MaintenancePolicy.nextDueDate(input.registeredAt),
     });
+  }
+
+  retire(): void {
+    if (this.props.status === 'RETIRED') {
+      throw new DroneAlreadyRetiredError(this.props.id);
+    }
+    this.props.status = 'RETIRED';
   }
 
   /* Rebuild an aggregate from persisted state, bypassing registration rules. */

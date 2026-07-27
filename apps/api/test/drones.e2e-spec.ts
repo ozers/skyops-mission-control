@@ -65,4 +65,22 @@ describe('Drones (e2e)', () => {
       .get('/api/v1/drones/00000000-0000-0000-0000-000000000000')
       .expect(404);
   });
+
+  it('retires a drone with no active missions', async () => {
+    const created = await request(server()).post('/api/v1/drones').send(validBody).expect(201);
+    await request(server())
+      .post(`/api/v1/drones/${created.body.id}/retire`)
+      .expect(200)
+      .expect((res) => expect(res.body.status).toBe('RETIRED'));
+  });
+
+  it('refuses to retire a drone that still has an active mission', async () => {
+    const created = await request(server()).post('/api/v1/drones').send(validBody).expect(201);
+    await dataSource.query(
+      `INSERT INTO missions (name, type, drone_id, pilot_name, site_location, status, scheduled_start, scheduled_end)
+       VALUES ('m', 'WIND_TURBINE_INSPECTION', $1, 'p', 's', 'PLANNED', '2026-05-01T10:00:00Z', '2026-05-01T12:00:00Z')`,
+      [created.body.id],
+    );
+    await request(server()).post(`/api/v1/drones/${created.body.id}/retire`).expect(409);
+  });
 });

@@ -26,3 +26,24 @@ export class DuplicateSerialNumberError extends DomainError {
     this.name = 'DuplicateSerialNumberError';
   }
 }
+
+export class DroneAlreadyRetiredError extends DomainError {
+  readonly kind = 'conflict';
+
+  constructor(id: string) {
+    super(`Drone ${id} is already retired`);
+    this.name = 'DroneAlreadyRetiredError';
+  }
+}
+
+export class DroneHasScheduledMissionsError extends DomainError {
+  readonly kind = 'conflict';
+
+  constructor(
+    id: string,
+    readonly missionIds: string[],
+  ) {
+    super(`Drone ${id} cannot be retired: it has scheduled missions ${missionIds.join(', ')}`);
+    this.name = 'DroneHasScheduledMissionsError';
+  }
+}
