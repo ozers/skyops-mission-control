@@ -61,4 +61,8 @@ jobs:
 
       - run: pnpm -r test
 
+      - run: pnpm --filter api migration:run
+
+      - run: pnpm --filter api test:integration
+
       - run: pnpm --filter api test:e2e

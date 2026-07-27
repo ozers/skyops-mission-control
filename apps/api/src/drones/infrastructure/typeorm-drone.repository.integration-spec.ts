@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { DataSource } from 'typeorm';
-import { buildDataSourceOptions } from '../../database/typeorm.config';
+import { createTestDataSource, truncateAll } from '../../../test/integration/database';
 import { Drone } from '../domain/drone';
 import { SerialNumber } from '../domain/serial-number';
 import { DroneRepository } from '../application/ports/drone.repository';
@@ -12,8 +12,7 @@ describe('TypeOrmDroneRepository (integration)', () => {
   let repository: DroneRepository;
 
   beforeAll(async () => {
-    dataSource = new DataSource(buildDataSourceOptions());
-    await dataSource.initialize();
+    dataSource = await createTestDataSource();
     repository = new TypeOrmDroneRepository(dataSource.getRepository(DroneEntity));
   });
 
@@ -22,7 +21,7 @@ describe('TypeOrmDroneRepository (integration)', () => {
   });
 
   beforeEach(async () => {
-    await dataSource.query('TRUNCATE drones, missions, maintenance_logs CASCADE');
+    await truncateAll(dataSource);
   });
 
   const newDrone = (serial: string): Drone =>
