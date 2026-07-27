@@ -151,4 +151,43 @@ describe('Missions (e2e)', () => {
       .send({ to: 'COMPLETED' })
       .expect(400);
   });
+
+  describe('concurrency', () => {
+    it('lets only one of two concurrent overlapping creates win (exclusion constraint)', async () => {
+      const droneId = await registerDrone();
+      const body = missionBody(droneId, '2030-05-01T10:00:00Z', '2030-05-01T12:00:00Z');
+
+      const [a, b] = await Promise.all([
+        request(server()).post('/api/v1/missions').send(body),
+        request(server()).post('/api/v1/missions').send(body),
+      ]);
+
+      expect([a.status, b.status].sort()).toEqual([201, 409]);
+    });
+
+    it('lets only one of two concurrent completes win, hours counted once (FOR UPDATE)', async () => {
+      const droneId = await registerDrone();
+      const missionId = await scheduleMission(droneId);
+      await request(server())
+        .post(`/api/v1/missions/${missionId}/transitions`)
+        .send({ to: 'PRE_FLIGHT_CHECK' })
+        .expect(200);
+      await request(server())
+        .post(`/api/v1/missions/${missionId}/transitions`)
+        .send({ to: 'IN_PROGRESS' })
+        .expect(200);
+
+      const complete = () =>
+        request(server())
+          .post(`/api/v1/missions/${missionId}/transitions`)
+          .send({ to: 'COMPLETED', flightHoursLogged: 3 });
+      const [a, b] = await Promise.all([complete(), complete()]);
+
+      expect([a.status, b.status].sort()).toEqual([200, 409]);
+      await request(server())
+        .get(`/api/v1/drones/${droneId}`)
+        .expect(200)
+        .expect((res) => expect(res.body.totalFlightHours).toBe(3));
+    });
+  });
 });
