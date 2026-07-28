@@ -5,7 +5,7 @@
   "description": "SkyOps Mission Control - drone fleet mission control and maintenance tracker",
   "packageManager": "pnpm@10.30.2",
   "engines": {
-    "node": ">=20.11 <21",
+    "node": ">=24 <25",
     "pnpm": ">=10"
   },
   "scripts": {
