@@ -11,6 +11,7 @@
     "start:prod": "node dist/main.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "jest",
+    "test:cov": "jest --coverage",
     "test:e2e": "jest --config ./test/jest-e2e.json --runInBand",
     "test:integration": "jest --config ./test/jest-integration.json --runInBand",
     "typeorm": "typeorm-ts-node-commonjs -d src/database/data-source.ts",
@@ -25,6 +26,20 @@
     "testEnvironment": "node",
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
+    "collectCoverageFrom": [
+      "**/domain/**/*.ts",
+      "**/application/**/*.ts",
+      "!**/*.spec.ts",
+      "!**/ports/**"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "statements": 85,
+        "branches": 80,
+        "functions": 75,
+        "lines": 85
+      }
+    },
     "moduleFileExtensions": [
       "ts",
       "js",
