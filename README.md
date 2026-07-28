@@ -41,9 +41,13 @@ pnpm --filter api seed
 
 # 5. start the API
 pnpm --filter api start:dev
+
+# 6. in another terminal, start the web app
+pnpm --filter web dev
 ```
 
-The API listens on `http://localhost:3000`. Swagger UI is at `http://localhost:3000/docs`.
+The API listens on `http://localhost:3000` (Swagger UI at `http://localhost:3000/docs`).
+The web app runs on `http://localhost:5173`.
 
 > Postgres is published on host port **5433** to avoid clashing with a local Postgres on
 > 5432. In CI, where there is no conflict, it uses 5432 (the code default).
@@ -54,9 +58,11 @@ The API listens on `http://localhost:3000`. Swagger UI is at `http://localhost:3
 pnpm --filter api test              # unit (domain + use cases), no database
 pnpm --filter api test:integration  # repository tests against Postgres
 pnpm --filter api test:e2e          # full HTTP flow against Postgres
+pnpm --filter web test:e2e          # Playwright: full user flow through the UI
 ```
 
-Integration and e2e tests need the Docker stack up and migrated.
+Integration and e2e tests need the Docker stack up and migrated. The web e2e also needs
+the API running and `pnpm --filter web exec playwright install chromium` once.
 
 ## API
 
@@ -91,6 +97,7 @@ apps/
       application/     use cases; depend on port interfaces only
       infrastructure/  TypeORM entities, repositories, transaction runner
       interface/       controllers, DTOs, presenters
+  web/                 React app (Vite): dashboard and management pages
 packages/
   contracts/           shared enums and response types (backend <-> frontend)
 ```
@@ -114,10 +121,16 @@ Two invariants worth calling out:
   mission and drone rows locked `FOR UPDATE`, so two concurrent transitions can't lose an
   update. A concurrency test proves that too.
 
-## Status and next steps
+## Frontend
 
-The backend is complete and tested. Still to do:
+A lean React app (Vite) in `apps/web`: a dashboard (fleet overview, maintenance alerts,
+upcoming and recent missions), drone and mission management pages, a drone detail page with
+mission and maintenance history, and a Playwright end-to-end test covering a full flow.
 
-- React frontend (dashboard and management pages) with a Playwright e2e flow.
-- Redis cache for the fleet health report (the seam is in place; see ADR-4).
+## Next steps
+
+Everything in the brief is implemented. Nice-to-haves left on the table, with the seam
+already in place:
+
+- Redis cache for the fleet health report (see ADR-4).
 - Domain events and an `Idempotency-Key` on mission creation.

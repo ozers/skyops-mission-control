@@ -15,6 +15,9 @@ build/
 # test / coverage
 coverage/
 *.log
+test-results/
+playwright-report/
+.playwright/
 
 # editor / os
 .DS_Store
