@@ -36,12 +36,23 @@ const EMPTY: FormState = {
   scheduledEnd: '',
 };
 
+/* Completing and aborting need operator input, so the row asks before it acts. */
+interface PendingAction {
+  missionId: string;
+  kind: 'complete' | 'abort';
+}
+
 export function MissionsPage() {
   const [missions, setMissions] = useState<MissionResponse[]>([]);
   const [drones, setDrones] = useState<DroneResponse[]>([]);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [filter, setFilter] = useState<MissionStatus | ''>('');
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [busyMissionId, setBusyMissionId] = useState<string | null>(null);
+  const [pending, setPending] = useState<PendingAction | null>(null);
+  const [pendingValue, setPendingValue] = useState('');
 
   const load = async (): Promise<void> => {
     const [missionPage, dronePage] = await Promise.all([api.listMissions(), api.listDrones()]);
@@ -50,7 +61,9 @@ export function MissionsPage() {
   };
 
   useEffect(() => {
-    void load();
+    load()
+      .catch((err: Error) => setError(err.message))
+      .finally(() => setLoading(false));
   }, []);
 
   const set =
@@ -60,6 +73,7 @@ export function MissionsPage() {
   const submit = async (event: FormEvent): Promise<void> => {
     event.preventDefault();
     setError(null);
+    setSubmitting(true);
     try {
       await api.createMission({
         ...form,
@@ -70,20 +84,27 @@ export function MissionsPage() {
       await load();
     } catch (err) {
       setError((err as Error).message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const runTransition = async (
-    mission: MissionResponse,
+    missionId: string,
     to: MissionStatus,
     extra: { flightHoursLogged?: number; abortReason?: string },
   ): Promise<void> => {
     setError(null);
+    setBusyMissionId(missionId);
     try {
-      await api.transitionMission(mission.id, { to, ...extra });
+      await api.transitionMission(missionId, { to, ...extra });
+      setPending(null);
+      setPendingValue('');
       await load();
     } catch (err) {
       setError((err as Error).message);
+    } finally {
+      setBusyMissionId(null);
     }
   };
 
@@ -92,11 +113,32 @@ export function MissionsPage() {
     if (!to) {
       return;
     }
-    void runTransition(mission, to, to === 'COMPLETED' ? { flightHoursLogged: 1 } : {});
+    /* Completing requires logged hours, so collect them first. */
+    if (to === 'COMPLETED') {
+      setPending({ missionId: mission.id, kind: 'complete' });
+      setPendingValue('');
+      return;
+    }
+    void runTransition(mission.id, to, {});
   };
 
-  const abort = (mission: MissionResponse): void => {
-    void runTransition(mission, 'ABORTED', { abortReason: 'operator abort' });
+  const confirmPending = (event: FormEvent): void => {
+    event.preventDefault();
+    if (!pending) {
+      return;
+    }
+    if (pending.kind === 'complete') {
+      void runTransition(pending.missionId, 'COMPLETED', {
+        flightHoursLogged: Number(pendingValue),
+      });
+      return;
+    }
+    void runTransition(pending.missionId, 'ABORTED', { abortReason: pendingValue });
+  };
+
+  const cancelPending = (): void => {
+    setPending(null);
+    setPendingValue('');
   };
 
   const availableDrones = drones.filter((drone) => drone.status === 'AVAILABLE');
@@ -186,11 +228,17 @@ export function MissionsPage() {
               required
             />
           </label>
-          <button type="submit">Schedule mission</button>
+          <button type="submit" disabled={submitting}>
+            Schedule mission
+          </button>
         </form>
       </div>
 
-      {error && <p className="error">{error}</p>}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
 
       <div className="block">
         <header className="block-head">
@@ -210,39 +258,90 @@ export function MissionsPage() {
             ))}
           </select>
         </header>
-        <div className="table-wrap scroll-y">
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Status</th>
-                <th>Start</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {visible.map((mission) => (
-                <tr key={mission.id}>
-                  <td>{mission.name}</td>
-                  <td>
-                    <StatusBadge status={mission.status} />
-                  </td>
-                  <td className="mono">{new Date(mission.scheduledStart).toLocaleString()}</td>
-                  <td className="actions">
-                    {NEXT_STATE[mission.status] && (
-                      <button onClick={() => advance(mission)}>
-                        Advance to {NEXT_STATE[mission.status]}
-                      </button>
-                    )}
-                    {!isTerminal(mission.status) && (
-                      <button onClick={() => abort(mission)}>Abort</button>
-                    )}
-                  </td>
+        {loading ? (
+          <p className="loading">Loading missions</p>
+        ) : (
+          <div className="table-wrap scroll-y">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Status</th>
+                  <th>Start</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {visible.map((mission) => {
+                  const isPending = pending?.missionId === mission.id;
+                  const busy = busyMissionId === mission.id;
+                  return (
+                    <tr key={mission.id}>
+                      <td>{mission.name}</td>
+                      <td>
+                        <StatusBadge status={mission.status} />
+                      </td>
+                      <td className="mono">{new Date(mission.scheduledStart).toLocaleString()}</td>
+                      <td className="actions">
+                        {isPending ? (
+                          <form className="inline-prompt" onSubmit={confirmPending}>
+                            {pending.kind === 'complete' ? (
+                              <input
+                                type="number"
+                                step="0.1"
+                                min="0.1"
+                                aria-label="flight hours"
+                                placeholder="Flight hours"
+                                value={pendingValue}
+                                onChange={(e) => setPendingValue(e.target.value)}
+                                required
+                                autoFocus
+                              />
+                            ) : (
+                              <input
+                                aria-label="abort reason"
+                                placeholder="Reason"
+                                value={pendingValue}
+                                onChange={(e) => setPendingValue(e.target.value)}
+                                required
+                                autoFocus
+                              />
+                            )}
+                            <button type="submit" disabled={busy}>
+                              Confirm
+                            </button>
+                            <button type="button" onClick={cancelPending}>
+                              Cancel
+                            </button>
+                          </form>
+                        ) : (
+                          <>
+                            {NEXT_STATE[mission.status] && (
+                              <button onClick={() => advance(mission)} disabled={busy}>
+                                Advance to {NEXT_STATE[mission.status]}
+                              </button>
+                            )}
+                            {!isTerminal(mission.status) && (
+                              <button
+                                onClick={() => {
+                                  setPending({ missionId: mission.id, kind: 'abort' });
+                                  setPendingValue('');
+                                }}
+                                disabled={busy}
+                              >
+                                Abort
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </section>
   );

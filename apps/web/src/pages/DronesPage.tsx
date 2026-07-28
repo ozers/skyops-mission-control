@@ -9,22 +9,29 @@ export function DronesPage() {
   const [serialNumber, setSerialNumber] = useState('');
   const [model, setModel] = useState<DroneModel>('PHANTOM_4');
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   const load = (): Promise<void> => api.listDrones().then((page) => setDrones(page.items));
 
   useEffect(() => {
-    void load();
+    load()
+      .catch((err: Error) => setError(err.message))
+      .finally(() => setLoading(false));
   }, []);
 
   const submit = async (event: FormEvent): Promise<void> => {
     event.preventDefault();
     setError(null);
+    setSubmitting(true);
     try {
       await api.createDrone({ serialNumber, model });
       setSerialNumber('');
       await load();
     } catch (err) {
       setError((err as Error).message);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -63,11 +70,17 @@ export function DronesPage() {
               ))}
             </select>
           </label>
-          <button type="submit">Register drone</button>
+          <button type="submit" disabled={submitting}>
+            Register drone
+          </button>
         </form>
       </div>
 
-      {error && <p className="error">{error}</p>}
+      {error && (
+        <p className="error" role="alert">
+          {error}
+        </p>
+      )}
 
       <div className="block">
         <header className="block-head">
@@ -75,6 +88,9 @@ export function DronesPage() {
           <h3>Fleet</h3>
           <span className="block-note">{drones.length} airframes</span>
         </header>
+        {loading ? (
+          <p className="loading">Loading fleet</p>
+        ) : (
         <div className="table-wrap">
           <table>
             <thead>
@@ -101,6 +117,7 @@ export function DronesPage() {
             </tbody>
           </table>
         </div>
+        )}
       </div>
     </section>
   );

@@ -683,10 +683,33 @@ td button + button {
   margin-left: 0.3rem;
 }
 
-td button:hover {
+td button:hover:not(:disabled) {
   background: transparent;
   border-color: var(--signal);
   color: var(--signal);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Inline confirmation inside a table row: flight hours, abort reason. */
+.inline-prompt {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  justify-content: flex-end;
+  padding: 0;
+  margin: 0;
+}
+
+.inline-prompt input {
+  width: 8.5rem;
+  padding: 0.15rem 0 0.2rem;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  border-bottom-color: var(--signal);
 }
 
 /* ---------------- Detail specs ---------------- */

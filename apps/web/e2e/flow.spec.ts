@@ -49,14 +49,18 @@ test('an operator registers a drone, flies a mission, and the dashboard follows'
   await page.getByRole('link', { name: 'Dashboard' }).click();
   await expect(inMissionCount(page)).toHaveText(String(dronesInMissionBefore + 1));
 
-  /* Complete the mission; the drone is released and its hours are banked. */
+  /* Completing asks the operator for the flight hours actually flown. */
   await page.getByRole('link', { name: 'Missions' }).click();
   await row.getByRole('button', { name: /Advance to COMPLETED/ }).click();
+  await row.getByLabel('flight hours').fill('2.5');
+  await row.getByRole('button', { name: 'Confirm' }).click();
   await expect(row.getByText('COMPLETED')).toBeVisible();
 
+  /* The drone is released and the logged hours are banked against it. */
   await page.getByRole('link', { name: 'Drones' }).click();
   await page.getByRole('link', { name: serial }).click();
   await expect(page.getByRole('heading', { name: serial })).toBeVisible();
   await expect(page.getByText('AVAILABLE')).toBeVisible();
+  await expect(page.getByRole('definition').filter({ hasText: '2.5' })).toBeVisible();
   await expect(page.getByRole('cell', { name: missionName })).toBeVisible();
 });

@@ -1,4 +1,4 @@
-import { NavLink, Route, Routes } from 'react-router-dom';
+import { Link, NavLink, Route, Routes } from 'react-router-dom';
 import { Dashboard } from './pages/Dashboard';
 import { DroneDetailPage } from './pages/DroneDetailPage';
 import { DronesPage } from './pages/DronesPage';
@@ -37,8 +37,23 @@ export function App() {
           <Route path="/drones" element={<DronesPage />} />
           <Route path="/drones/:id" element={<DroneDetailPage />} />
           <Route path="/missions" element={<MissionsPage />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
     </div>
+  );
+}
+
+function NotFound() {
+  return (
+    <section>
+      <header className="masthead">
+        <h2>Not found</h2>
+        <p className="stamp">No such page in this terminal</p>
+      </header>
+      <Link to="/" className="back-link">
+        Back to dashboard
+      </Link>
+    </section>
   );
 }
