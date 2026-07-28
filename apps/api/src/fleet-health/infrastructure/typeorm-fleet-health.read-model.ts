@@ -1,10 +1,12 @@
-import { DRONE_STATUSES, DroneStatus, FleetHealthReport } from '@skyops/contracts';
+import { DroneStatus, FleetHealthReport } from '@skyops/contracts';
 import { DataSource } from 'typeorm';
 import { FleetHealthReadModel } from '../application/ports/fleet-health.read-model';
+import { buildFleetHealthReport } from '../domain/fleet-health.calculator';
 
 const MAINTENANCE_HOURS_INTERVAL = 50;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+/* Aggregates in SQL; the fleet is never loaded into memory to be counted. */
 export class TypeOrmFleetHealthReadModel implements FleetHealthReadModel {
   constructor(private readonly dataSource: DataSource) {}
 
@@ -14,15 +16,6 @@ export class TypeOrmFleetHealthReadModel implements FleetHealthReadModel {
     const statusRows: Array<{ status: DroneStatus; count: number }> = await this.dataSource.query(
       'SELECT status, COUNT(*)::int AS count FROM drones GROUP BY status',
     );
-    const dronesByStatus = Object.fromEntries(DRONE_STATUSES.map((s) => [s, 0])) as Record<
-      DroneStatus,
-      number
-    >;
-    let totalDrones = 0;
-    for (const row of statusRows) {
-      dronesByStatus[row.status] = row.count;
-      totalDrones += row.count;
-    }
 
     /* Overdue = past the 90-day due date, or 50+ flight hours since the last service. */
     const overdueRows: Array<{ id: string }> = await this.dataSource.query(
@@ -41,13 +34,13 @@ export class TypeOrmFleetHealthReadModel implements FleetHealthReadModel {
     const avgRows: Array<{ avg: string | null }> = await this.dataSource.query(
       'SELECT AVG(total_flight_hours) AS avg FROM drones',
     );
+    const avg = avgRows[0]?.avg;
 
-    return {
-      totalDrones,
-      dronesByStatus,
-      overdueMaintenanceDroneIds: overdueRows.map((row) => row.id),
+    return buildFleetHealthReport({
+      statusCounts: statusRows,
+      overdueDroneIds: overdueRows.map((row) => row.id),
       missionsNext24h: next24Rows[0]?.count ?? 0,
-      averageFlightHours: avgRows[0]?.avg ? Number(avgRows[0].avg) : 0,
-    };
+      averageFlightHours: avg === null || avg === undefined ? null : Number(avg),
+    });
   }
 }
