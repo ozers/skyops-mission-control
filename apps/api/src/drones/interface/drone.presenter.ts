@@ -1,7 +1,7 @@
 import { DroneResponse } from '@skyops/contracts';
 import { Drone } from '../domain/drone';
 
-export function toDroneResponse(drone: Drone): DroneResponse {
+export function toDroneResponse(drone: Drone, now: Date = new Date()): DroneResponse {
   return {
     id: drone.id,
     serialNumber: drone.serialNumber.value,
@@ -10,6 +10,7 @@ export function toDroneResponse(drone: Drone): DroneResponse {
     totalFlightHours: drone.totalFlightHours,
     lastMaintenanceAt: drone.lastMaintenanceAt?.toISOString() ?? null,
     nextMaintenanceDueAt: drone.nextMaintenanceDueAt?.toISOString() ?? null,
+    maintenanceDue: drone.isMaintenanceDue(now),
     registeredAt: drone.registeredAt.toISOString(),
   };
 }

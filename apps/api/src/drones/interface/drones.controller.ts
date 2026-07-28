@@ -62,7 +62,8 @@ export class DronesController {
   @ApiOkResponse({ description: 'A page of drones' })
   async findAll(@Query() query: ListDronesQueryDto): Promise<PaginatedResult<DroneResponse>> {
     const page = await this.listDrones.execute(query);
-    return { ...page, items: page.items.map(toDroneResponse) };
+    const now = new Date();
+    return { ...page, items: page.items.map((drone) => toDroneResponse(drone, now)) };
   }
 
   @Patch(':id')

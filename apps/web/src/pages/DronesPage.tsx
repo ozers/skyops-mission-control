@@ -125,6 +125,7 @@ export function DronesPage() {
                   <td className="quiet">{drone.model}</td>
                   <td>
                     <StatusBadge status={drone.status} />
+                    {drone.maintenanceDue && <span className="flag">Service due</span>}
                   </td>
                   <td className="num">{drone.totalFlightHours}</td>
                 </tr>

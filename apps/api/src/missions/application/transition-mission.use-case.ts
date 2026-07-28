@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { MissionStatus } from '@skyops/contracts';
 import { DroneNotFoundError } from '../../drones/domain/drone.errors';
 import { Clock } from '../../shared/application/clock';
@@ -17,6 +18,8 @@ export interface TransitionMissionInput {
  * transitions can't race (ADR-4).
  */
 export class TransitionMissionUseCase {
+  private readonly logger = new Logger(TransitionMissionUseCase.name);
+
   constructor(
     private readonly tx: TransactionRunner,
     private readonly clock: Clock,
@@ -53,6 +56,16 @@ export class TransitionMissionUseCase {
             throw new DroneNotFoundError(mission.droneId);
           }
           drone.logCompletedMission(mission.loggedFlightHours ?? 0);
+          /*
+           * The brief asks the system to check whether the logged hours have
+           * tripped a maintenance threshold. The drone stays AVAILABLE and is
+           * flagged: MAINTENANCE means physically in the workshop.
+           */
+          if (drone.isMaintenanceDue(now)) {
+            this.logger.warn(
+              `Drone ${drone.serialNumber.value} is due for maintenance after mission ${mission.id}`,
+            );
+          }
           await drones.save(drone);
           break;
         }

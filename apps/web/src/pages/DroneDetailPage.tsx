@@ -64,7 +64,10 @@ export function DroneDetailPage() {
         </div>
         <div>
           <dt>Next due</dt>
-          <dd>{formatDate(drone.nextMaintenanceDueAt)}</dd>
+          <dd>
+            {formatDate(drone.nextMaintenanceDueAt)}
+            {drone.maintenanceDue && <span className="flag">Service due</span>}
+          </dd>
         </div>
       </dl>
 

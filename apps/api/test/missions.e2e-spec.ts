@@ -147,6 +147,37 @@ describe('Missions (e2e)', () => {
       });
   });
 
+  it('flags the drone as maintenance-due when logged hours cross the threshold', async () => {
+    const droneId = await registerDrone();
+    const missionId = await scheduleMission(droneId);
+
+    await request(server())
+      .get(`/api/v1/drones/${droneId}`)
+      .expect(200)
+      .expect((res) => expect(res.body.maintenanceDue).toBe(false));
+
+    await request(server())
+      .post(`/api/v1/missions/${missionId}/transitions`)
+      .send({ to: 'PRE_FLIGHT_CHECK' })
+      .expect(200);
+    await request(server())
+      .post(`/api/v1/missions/${missionId}/transitions`)
+      .send({ to: 'IN_PROGRESS' })
+      .expect(200);
+    await request(server())
+      .post(`/api/v1/missions/${missionId}/transitions`)
+      .send({ to: 'COMPLETED', flightHoursLogged: 55 })
+      .expect(200);
+
+    await request(server())
+      .get(`/api/v1/drones/${droneId}`)
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.totalFlightHours).toBe(55);
+        expect(res.body.maintenanceDue).toBe(true);
+      });
+  });
+
   it('rejects an illegal transition with 409', async () => {
     const droneId = await registerDrone();
     const missionId = await scheduleMission(droneId);
