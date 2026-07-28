@@ -1,4 +1,5 @@
 import { ChangeEvent, FormEvent, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import {
   MISSION_STATUSES,
   MISSION_TYPES,
@@ -8,6 +9,7 @@ import {
   type MissionType,
 } from '@skyops/contracts';
 import { api } from '../api';
+import { Pagination } from '../components/Pagination';
 import { StatusBadge } from '../components/StatusBadge';
 
 const NEXT_STATE: Partial<Record<MissionStatus, MissionStatus>> = {
@@ -44,6 +46,9 @@ interface PendingAction {
 
 export function MissionsPage() {
   const [missions, setMissions] = useState<MissionResponse[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [drones, setDrones] = useState<DroneResponse[]>([]);
   const [form, setForm] = useState<FormState>(EMPTY);
   const [filter, setFilter] = useState<MissionStatus | ''>('');
@@ -54,17 +59,24 @@ export function MissionsPage() {
   const [pending, setPending] = useState<PendingAction | null>(null);
   const [pendingValue, setPendingValue] = useState('');
 
-  const load = async (): Promise<void> => {
-    const [missionPage, dronePage] = await Promise.all([api.listMissions(), api.listDrones()]);
+  /* Paging and filtering happen server-side; the drone options need the whole fleet. */
+  const load = async (target = page, status = filter, size = pageSize): Promise<void> => {
+    const [missionPage, dronePage] = await Promise.all([
+      api.listMissions({ page: target, pageSize: size, ...(status ? { status } : {}) }),
+      api.listDrones({ pageSize: 100 }),
+    ]);
     setMissions(missionPage.items);
+    setTotal(missionPage.total);
     setDrones(dronePage.items);
   };
 
   useEffect(() => {
-    load()
+    setLoading(true);
+    load(page, filter, pageSize)
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [page, filter, pageSize]);
 
   const set =
     (key: keyof FormState) => (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
@@ -81,7 +93,13 @@ export function MissionsPage() {
         scheduledEnd: new Date(form.scheduledEnd).toISOString(),
       });
       setForm(EMPTY);
-      await load();
+      /* The list is newest-first, so a fresh mission lands on page one. */
+      if (page === 1 && !filter) {
+        await load(1, '', pageSize);
+      } else {
+        setFilter('');
+        setPage(1);
+      }
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -144,7 +162,32 @@ export function MissionsPage() {
   const availableDrones = drones.filter((drone) => drone.status === 'AVAILABLE');
   const isTerminal = (status: MissionStatus): boolean =>
     status === 'COMPLETED' || status === 'ABORTED';
-  const visible = filter ? missions.filter((m) => m.status === filter) : missions;
+  const serialByDroneId = new Map(drones.map((drone) => [drone.id, drone.serialNumber]));
+
+  /* Date on one line, the time range under it, so the column stays narrow. */
+  const formatWindow = (mission: MissionResponse): { date: string; time: string } => {
+    const start = new Date(mission.scheduledStart);
+    const end = new Date(mission.scheduledEnd);
+    const day = (d: Date): string =>
+      d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+    const clock = (d: Date): string =>
+      d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+    const sameDay = start.toDateString() === end.toDateString();
+    return {
+      date: day(start),
+      time: sameDay ? `${clock(start)}–${clock(end)}` : `${clock(start)} → ${day(end)}`,
+    };
+  };
+
+  const outcomeOf = (mission: MissionResponse): string => {
+    if (mission.status === 'COMPLETED') {
+      return mission.loggedFlightHours === null ? '—' : `${mission.loggedFlightHours} h logged`;
+    }
+    if (mission.status === 'ABORTED') {
+      return mission.abortReason ?? '—';
+    }
+    return '—';
+  };
 
   return (
     <section>
@@ -244,13 +287,14 @@ export function MissionsPage() {
         <header className="block-head">
           <span className="block-index">02</span>
           <h3>Schedule</h3>
-          <span className="block-note">
-            {visible.length} of {missions.length}
-          </span>
+          <span className="block-note">{total} missions</span>
           <select
             aria-label="status filter"
             value={filter}
-            onChange={(e) => setFilter(e.target.value as MissionStatus | '')}
+            onChange={(e) => {
+              setPage(1);
+              setFilter(e.target.value as MissionStatus | '');
+            }}
           >
             <option value="">All statuses</option>
             {MISSION_STATUSES.map((s) => (
@@ -265,23 +309,39 @@ export function MissionsPage() {
             <table>
               <thead>
                 <tr>
-                  <th>Name</th>
+                  <th>Mission</th>
+                  <th>Drone</th>
+                  <th>Window</th>
                   <th>Status</th>
-                  <th>Start</th>
+                  <th>Outcome</th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {visible.map((mission) => {
+                {missions.map((mission) => {
                   const isPending = pending?.missionId === mission.id;
                   const busy = busyMissionId === mission.id;
                   return (
                     <tr key={mission.id}>
-                      <td>{mission.name}</td>
+                      <td>
+                        {mission.name}
+                        <span className="sub">
+                          {mission.type} · {mission.siteLocation} · {mission.pilotName}
+                        </span>
+                      </td>
+                      <td>
+                        <Link to={`/drones/${mission.droneId}`}>
+                          {serialByDroneId.get(mission.droneId) ?? 'unknown'}
+                        </Link>
+                      </td>
+                      <td className="mono">
+                        {formatWindow(mission).date}
+                        <span className="sub">{formatWindow(mission).time}</span>
+                      </td>
                       <td>
                         <StatusBadge status={mission.status} />
                       </td>
-                      <td className="mono">{new Date(mission.scheduledStart).toLocaleString()}</td>
+                      <td className="quiet">{outcomeOf(mission)}</td>
                       <td className="actions">
                         {isPending ? (
                           <form className="inline-prompt" onSubmit={confirmPending}>
@@ -342,6 +402,17 @@ export function MissionsPage() {
             </table>
           </div>
         )}
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onChange={setPage}
+          onPageSizeChange={(size) => {
+            setPage(1);
+            setPageSize(size);
+          }}
+          label="Missions"
+        />
       </div>
     </section>
   );

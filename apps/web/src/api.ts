@@ -1,6 +1,7 @@
 import type {
   DroneModel,
   DroneResponse,
+  DroneStatus,
   FleetHealthReport,
   MaintenanceLogResponse,
   MissionResponse,
@@ -27,6 +28,22 @@ async function req<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+function query(params: Record<string, string | number | undefined>): string {
+  const search = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== '') {
+      search.set(key, String(value));
+    }
+  }
+  const qs = search.toString();
+  return qs ? `?${qs}` : '';
+}
+
+export interface ListParams {
+  page?: number;
+  pageSize?: number;
+}
+
 export interface CreateMissionBody {
   name: string;
   type: MissionType;
@@ -39,16 +56,19 @@ export interface CreateMissionBody {
 
 export const api = {
   fleetHealth: () => req<FleetHealthReport>('/fleet/health'),
-  listDrones: () => req<PaginatedResult<DroneResponse>>('/drones?pageSize=100'),
+
+  listDrones: (params: ListParams & { status?: DroneStatus } = {}) =>
+    req<PaginatedResult<DroneResponse>>(`/drones${query({ ...params })}`),
   getDrone: (id: string) => req<DroneResponse>(`/drones/${id}`),
   createDrone: (body: { serialNumber: string; model: DroneModel }) =>
     req<DroneResponse>('/drones', { method: 'POST', body: JSON.stringify(body) }),
   retireDrone: (id: string) => req<DroneResponse>(`/drones/${id}/retire`, { method: 'POST' }),
+
   listMaintenanceLogs: (droneId: string) =>
     req<PaginatedResult<MaintenanceLogResponse>>(`/drones/${droneId}/maintenance-logs`),
-  listMissions: () => req<PaginatedResult<MissionResponse>>('/missions?pageSize=100'),
-  missionsForDrone: (droneId: string) =>
-    req<PaginatedResult<MissionResponse>>(`/missions?droneId=${droneId}&pageSize=100`),
+
+  listMissions: (params: ListParams & { status?: MissionStatus; droneId?: string } = {}) =>
+    req<PaginatedResult<MissionResponse>>(`/missions${query({ ...params })}`),
   createMission: (body: CreateMissionBody) =>
     req<MissionResponse>('/missions', { method: 'POST', body: JSON.stringify(body) }),
   transitionMission: (

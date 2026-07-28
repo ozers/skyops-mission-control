@@ -51,7 +51,8 @@ export class TypeOrmMissionRepository implements MissionRepository {
       query.andWhere('mission.scheduledStart <= :to', { to: params.to });
     }
     query
-      .orderBy('mission.scheduledStart', 'ASC')
+      /* Most recently scheduled first, so newly booked work is on the first page. */
+      .orderBy('mission.scheduledStart', 'DESC')
       .skip((params.page - 1) * params.pageSize)
       .take(params.pageSize);
 

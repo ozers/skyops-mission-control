@@ -2,23 +2,33 @@ import { FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { DRONE_MODELS, type DroneModel, type DroneResponse } from '@skyops/contracts';
 import { api } from '../api';
+import { Pagination } from '../components/Pagination';
 import { StatusBadge } from '../components/StatusBadge';
 
 export function DronesPage() {
   const [drones, setDrones] = useState<DroneResponse[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const [serialNumber, setSerialNumber] = useState('');
   const [model, setModel] = useState<DroneModel>('PHANTOM_4');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
-  const load = (): Promise<void> => api.listDrones().then((page) => setDrones(page.items));
+  const load = (target = page, size = pageSize): Promise<void> =>
+    api.listDrones({ page: target, pageSize: size }).then((result) => {
+      setDrones(result.items);
+      setTotal(result.total);
+    });
 
   useEffect(() => {
-    load()
+    setLoading(true);
+    load(page, pageSize)
       .catch((err: Error) => setError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+    /* eslint-disable-next-line react-hooks/exhaustive-deps */
+  }, [page, pageSize]);
 
   const submit = async (event: FormEvent): Promise<void> => {
     event.preventDefault();
@@ -27,7 +37,12 @@ export function DronesPage() {
     try {
       await api.createDrone({ serialNumber, model });
       setSerialNumber('');
-      await load();
+      /* Newest drones sort first, so show the operator the page it landed on. */
+      if (page === 1) {
+        await load(1);
+      } else {
+        setPage(1);
+      }
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -86,7 +101,7 @@ export function DronesPage() {
         <header className="block-head">
           <span className="block-index">02</span>
           <h3>Fleet</h3>
-          <span className="block-note">{drones.length} airframes</span>
+          <span className="block-note">{total} airframes</span>
         </header>
         {loading ? (
           <p className="loading">Loading fleet</p>
@@ -118,6 +133,17 @@ export function DronesPage() {
           </table>
         </div>
         )}
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onChange={setPage}
+          onPageSizeChange={(size) => {
+            setPage(1);
+            setPageSize(size);
+          }}
+          label="Drones"
+        />
       </div>
     </section>
   );

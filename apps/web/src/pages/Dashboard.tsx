@@ -23,7 +23,12 @@ export function Dashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    Promise.all([api.fleetHealth(), api.listDrones(), api.listMissions()])
+    /* The dashboard aggregates across the fleet, so it asks for a wide page. */
+    Promise.all([
+      api.fleetHealth(),
+      api.listDrones({ pageSize: 100 }),
+      api.listMissions({ pageSize: 100 }),
+    ])
       .then(([fleet, dronePage, missionPage]) => {
         setReport(fleet);
         setDrones(dronePage.items);

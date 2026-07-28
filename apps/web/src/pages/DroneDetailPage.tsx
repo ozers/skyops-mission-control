@@ -15,7 +15,11 @@ export function DroneDetailPage() {
     if (!id) {
       return;
     }
-    Promise.all([api.getDrone(id), api.missionsForDrone(id), api.listMaintenanceLogs(id)])
+    Promise.all([
+      api.getDrone(id),
+      api.listMissions({ droneId: id, pageSize: 100 }),
+      api.listMaintenanceLogs(id),
+    ])
       .then(([droneData, missionPage, logPage]) => {
         setDrone(droneData);
         setMissions(missionPage.items);
@@ -81,17 +85,28 @@ export function DroneDetailPage() {
                   <th>Type</th>
                   <th>Status</th>
                   <th>Scheduled</th>
+                  <th>Outcome</th>
                 </tr>
               </thead>
               <tbody>
                 {missions.map((mission) => (
                   <tr key={mission.id}>
-                    <td>{mission.name}</td>
+                    <td>
+                      {mission.name}
+                      <span className="sub">
+                        {mission.siteLocation} · {mission.pilotName}
+                      </span>
+                    </td>
                     <td className="quiet">{mission.type}</td>
                     <td>
                       <StatusBadge status={mission.status} />
                     </td>
                     <td className="mono">{new Date(mission.scheduledStart).toLocaleString()}</td>
+                    <td className="quiet">
+                      {mission.status === 'COMPLETED' && mission.loggedFlightHours !== null
+                        ? `${mission.loggedFlightHours} h logged`
+                        : (mission.abortReason ?? '—')}
+                    </td>
                   </tr>
                 ))}
               </tbody>
