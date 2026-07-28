@@ -9,6 +9,8 @@
     "pnpm": ">=10"
   },
   "scripts": {
+    "//prepare": "contracts is consumed as built output, so a fresh install has to produce it before anything can typecheck or run",
+    "prepare": "pnpm --filter @skyops/contracts build",
     "build": "pnpm -r build",
     "test": "pnpm -r test",
     "lint": "pnpm -r lint",
