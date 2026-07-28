@@ -66,3 +66,15 @@ jobs:
       - run: pnpm --filter api test:integration
 
       - run: pnpm --filter api test:e2e
+
+      - run: pnpm --filter web exec playwright install --with-deps chromium
+
+      # Playwright starts the web dev server itself; the API has to be up first.
+      - name: Run the web end-to-end flow
+        run: |
+          node apps/api/dist/main.js &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:3000/api/v1/health > /dev/null && break
+            sleep 1
+          done
+          pnpm --filter web test:e2e
